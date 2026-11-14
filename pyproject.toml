@@ -9,7 +9,7 @@ description = "Turn a personal diary into a memoir — explore it, find its arcs
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Bonnie Bingham" }]
+authors = [{ name = "Bonnie Bingham", email = "cashcam1@gmail.com" }]
 keywords = ["diary", "memoir", "writing", "tts", "voice-cloning", "rag"]
 
 # Core stays tiny and dependency-light. Heavy pieces are opt-in extras so the
@@ -40,3 +40,8 @@ packages = ["src/monograph"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.urls]
+Homepage = "https://github.com/bbplus3/monograph"
+Repository = "https://github.com/bbplus3/monograph"
+Issues = "https://github.com/bbplus3/monograph/issues"
