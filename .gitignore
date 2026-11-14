@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+
+# monograph — never commit anyone's private content or large artifacts
+# (diaries, voices, generated books, model caches)
+*.wav
+*.mp3
+*.m4a
+/out/
+/book/
+/audio/
+/narration_audio/
+my-diary/
+voice.wav
+pronunciation.txt
+*.index
+*.faiss
+.chroma/
+models/
+.cache/
