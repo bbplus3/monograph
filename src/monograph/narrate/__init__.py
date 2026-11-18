@@ -9,6 +9,7 @@ Backends live in .backends and are imported lazily.
 """
 from .base import Narrator
 from . import chapterize, pronunciation, voice, audio
+from .audio import bind
 
 
 def get_narrator(name: str, cfg) -> Narrator:
@@ -23,4 +24,4 @@ def get_narrator(name: str, cfg) -> Narrator:
     raise ValueError(f"Unknown narrate backend: {name!r} (expected 'f5' or 'xtts')")
 
 
-__all__ = ["Narrator", "get_narrator", "chapterize", "pronunciation", "voice", "audio"]
+__all__ = ["Narrator", "get_narrator", "bind", "chapterize", "pronunciation", "voice", "audio"]
