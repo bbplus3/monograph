@@ -3,6 +3,7 @@
 ported your logic in.
 
     monograph narrate --voice voice.wav --ref-text "..." --text chapters/ --out audio/
+    monograph bind --audio audio/ --out audiobook.mp3
     monograph prepare-voice --src recording.m4a --out voice.wav
     monograph pipeline --diary ./my-diary --voice voice.wav --out ./book
 """
@@ -38,6 +39,13 @@ def cmd_narrate(args):
     narrator = get_narrator(cfg.narrate_backend, cfg)
     outs = narrator.narrate_dir(args.text, args.out, only=args.only)
     print(f"done: {len(outs)} chapter(s) in {args.out}")
+
+
+def cmd_bind(args):
+    """Stitch the narrated chapter WAVs into one listenable file."""
+    from .narrate.audio import bind
+    out = bind(args.audio, args.out, gap=args.gap, bitrate=args.bitrate)
+    print(f"wrote {out}")
 
 
 def cmd_pipeline(args):
@@ -146,6 +154,13 @@ def main(argv=None):
     n.add_argument("--pronunciation-path", dest="pronunciation_path", default=None)
     n.add_argument("--only", default=None, help="only chapters whose name contains this")
     n.set_defaults(func=cmd_narrate)
+
+    bd = sub.add_parser("bind", help="stitch narrated chapter WAVs into one audiobook file")
+    bd.add_argument("--audio", default="audio", help="folder of chapter .wav files (from `narrate`)")
+    bd.add_argument("--out", default="audiobook.mp3", help="output file; .mp3 encodes via lameenc, else .wav")
+    bd.add_argument("--gap", type=float, default=1.0, help="seconds of silence between chapters")
+    bd.add_argument("--bitrate", type=int, default=64, help="MP3 bitrate in kbps (ignored for .wav)")
+    bd.set_defaults(func=cmd_bind)
 
     pl = sub.add_parser("pipeline", help="run the whole thing (once stages are ported)")
     pl.add_argument("--diary"); pl.add_argument("--voice"); pl.add_argument("--out", default="book")
