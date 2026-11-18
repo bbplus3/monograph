@@ -2,6 +2,10 @@
 the long internal silences TTS models emit, and reading/writing WAVs. These are
 backend-agnostic and operate on plain float32 numpy arrays."""
 from __future__ import annotations
+import glob
+import os
+import re
+
 import numpy as np
 
 
@@ -53,3 +57,84 @@ def read_wav(path: str):
     if getattr(data, "ndim", 1) > 1:
         data = data.mean(axis=1)            # downmix to mono
     return np.asarray(data, dtype=np.float32), sr
+
+
+def _natkey(s: str):
+    """Sort key so chapter_2 orders before chapter_10, not after it."""
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", s)]
+
+
+def _ordered_paths(audio, order=None):
+    if order is not None:
+        return list(order)
+    paths = list(audio) if isinstance(audio, (list, tuple)) else glob.glob(
+        os.path.join(audio, "*.wav"))
+    return sorted(paths, key=lambda p: _natkey(os.path.basename(p)))
+
+
+def _to_pcm16(a: np.ndarray) -> bytes:
+    return (np.clip(a, -1.0, 1.0) * 32767.0).astype("<i2").tobytes()
+
+
+def _open_mp3(path: str, sr: int, bitrate: int):
+    try:
+        import lameenc
+    except ImportError:
+        raise SystemExit("MP3 output needs lameenc (no ffmpeg required).  "
+                         "Install it with:  pip install 'monograph[mp3]'")
+    enc = lameenc.Encoder()
+    enc.set_bit_rate(bitrate)
+    enc.set_in_sample_rate(sr)
+    enc.set_channels(1)
+    enc.set_quality(2)                       # 2 = high quality
+    return enc, open(path, "wb")
+
+
+def bind(audio, out: str, gap: float = 1.0, bitrate: int = 64, order=None) -> str:
+    """Stitch per-chapter WAVs into one listenable file — the end of `narrate`.
+
+    `audio`   a folder of .wav files, or an explicit list of wav paths.
+    `out`     output path; ending in .mp3 encodes via lameenc (no ffmpeg),
+              anything else writes a lossless WAV.
+    `gap`     seconds of silence inserted between chapters.
+    `order`   optional explicit list of paths; otherwise files are joined in
+              natural-sorted filename order (chapter_2 before chapter_10).
+
+    Streams chapter-by-chapter, so peak memory stays near one chapter even for a
+    full-length book. Returns the output path.
+    """
+    paths = _ordered_paths(audio, order)
+    if not paths:
+        raise FileNotFoundError(f"No .wav files to bind in {audio!r}")
+
+    is_mp3 = out.lower().endswith(".mp3")
+    enc = mp3_fh = sf_out = sr = None
+    try:
+        for i, p in enumerate(paths):
+            a, s = read_wav(p)
+            if sr is None:
+                sr = s
+                if is_mp3:
+                    enc, mp3_fh = _open_mp3(out, sr, bitrate)
+                else:
+                    import soundfile as sf
+                    sf_out = sf.SoundFile(out, "w", samplerate=sr,
+                                          channels=1, subtype="PCM_16")
+            elif s != sr:
+                raise ValueError(f"{os.path.basename(p)} is {s} Hz but the book is "
+                                 f"{sr} Hz — every chapter must share one sample rate.")
+            block = a
+            if gap and i != len(paths) - 1:
+                block = np.concatenate([a, silence(gap, sr)])
+            if is_mp3:
+                mp3_fh.write(enc.encode(_to_pcm16(block)))
+            else:
+                sf_out.write(block)
+        if is_mp3 and enc is not None:
+            mp3_fh.write(enc.flush())
+    finally:
+        if sf_out is not None:
+            sf_out.close()
+        if mp3_fh is not None:
+            mp3_fh.close()
+    return out
