@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "monograph"
-version = "0.1.0"
+version = "0.1.1"
 description = "Turn a personal diary into a memoir — explore it, find its arcs, draft it, and narrate it in your own voice. Local-first."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,13 +24,14 @@ ingest = ["python-docx>=0.8"]                                 # read .docx diari
 index = ["sentence-transformers>=2.2"]                        # local embeddings (store is numpy; no faiss)
 arc = ["pandas>=1.5", "scikit-learn>=1.1"]                    # signal extraction + clustering
 narrate = ["soundfile>=0.12"]                                 # shared audio I/O
+mp3 = ["monograph[narrate]", "lameenc>=1.7"]                  # bind -> .mp3 (self-contained, no ffmpeg)
 narrate-f5 = ["monograph[narrate]", "f5-tts>=1.0"]
 narrate-xtts = ["monograph[narrate]", "coqui-tts>=0.24"]
 llm-ollama = []                                               # local LLM via stdlib HTTP (just run Ollama)
 llm-openai = ["openai>=1.0"]
 app = ["streamlit>=1.30"]
-dev = ["pytest>=7", "soundfile>=0.12", "pandas>=1.5", "scikit-learn>=1.1", "python-docx>=0.8"]
-all = ["monograph[ingest,index,arc,narrate-f5,app,dev]"]
+dev = ["pytest>=7", "soundfile>=0.12", "lameenc>=1.7", "pandas>=1.5", "scikit-learn>=1.1", "python-docx>=0.8"]
+all = ["monograph[ingest,index,arc,narrate-f5,mp3,app,dev]"]
 
 [project.scripts]
 monograph = "monograph.cli:main"
